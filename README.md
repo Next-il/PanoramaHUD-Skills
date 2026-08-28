@@ -6,7 +6,7 @@ that shipped in the 2026-08-24 update.
 
 |                                         |                                                                                                                |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `[cs2-panorama-hud/](cs2-panorama-hud)` | Authoring layouts, driving them from a CounterStrikeSharp plugin, and previewing them without a VPK round trip |
+| [`cs2-panorama-hud/`](cs2-panorama-hud) | Authoring layouts, driving them from a CounterStrikeSharp plugin, and previewing them without a VPK round trip |
 
 
 
