@@ -27,6 +27,10 @@
 #>
 [CmdletBinding()]
 param(
+    # Assemble panorama files from every project into the addon before compiling. Each project owns
+    # its own layouts so it can be split into its own repo; this puts them back together.
+    [switch] $Collect,
+    [string] $RepoRoot = (Join-Path $PSScriptRoot '..\..'),
     [string] $Cs2Root  = 'X:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive',
     [string] $Addon    = 'hud_test1',
     [switch] $Watch,
@@ -51,6 +55,17 @@ Assert-Path $compiler   'resourcecompiler.exe'
 Assert-Path $contentDir "Addon content (is -Addon '$Addon' right?)"
 
 function Build {
+    if ($Collect) {
+        Write-Host "`n[0/2] Collecting panorama files from every project" -ForegroundColor Cyan
+
+        $collector = Join-Path $PSScriptRoot 'collect-panorama.py'
+        $addon     = Join-Path $Cs2Root "content\csgo_addons\$Addon"
+
+        & python3 $collector --root $RepoRoot --out $addon
+
+        if ($LASTEXITCODE -ne 0) { throw 'Collect failed - see the conflict above.' }
+    }
+
     $sources = Get-ChildItem -Path $contentDir -Recurse -Include *.xml, *.css -File
 
     if (-not $sources) { throw "No .xml or .css under $contentDir" }

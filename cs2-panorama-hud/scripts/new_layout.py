@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Scaffold a HudMenu layout and stylesheet.
+Scaffold a PanoramaManager layout and stylesheet.
 
     python3 new_layout.py mymenu                    # 10-row list, into ./panorama/
     python3 new_layout.py shop --rows 6 --out path/to/addon
@@ -44,7 +44,7 @@ LAYOUT = '''<root>
 		  menu_footer                  {{s:}}   - status line
 	-->
 	<Panel class="hud-screen" hittest="false">
-		<Panel id="HudMenuRoot" class="hud-root hud-card {name}-root hidden">
+		<Panel id="PanoramaRoot" class="hud-root hud-card {name}-root hidden">
 
 			<Panel class="hud-head">
 				<Label class="hud-title" text="{{s:menu_title}}" />
@@ -186,9 +186,9 @@ STYLE = '''/*
 USAGE = '''
 Drive it from your plugin:
 
-    HudMenus.Init(this);
+    Panorama.Init(this);
 
-    var menu = HudMenus.Spawn("panorama/layout/custom_game/{name}.vxml_c",
+    var menu = Panorama.Spawn("panorama/layout/custom_game/{name}.vxml_c",
                               new LayoutContract {{ RowCount = {rows} }});
 
     menu.Title = "{title}";
@@ -208,7 +208,7 @@ Then:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Scaffold a HudMenu layout.")
+    ap = argparse.ArgumentParser(description="Scaffold a PanoramaManager layout.")
     ap.add_argument("name", help="lowercase, no spaces - becomes the file name and class prefix")
     ap.add_argument("--rows", type=int, default=10, help="row pool size, which is also the page size")
     ap.add_argument("--out", default=".", help="directory containing (or to contain) panorama/")

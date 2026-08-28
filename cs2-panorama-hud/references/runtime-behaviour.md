@@ -77,8 +77,12 @@ pattern the CS2 modding community uses is `z-index: 99999` on the root wrapper, 
 }
 ```
 
-Putting it on an inner panel does nothing regardless of the number. Confirmed twice: once by moving
-it and seeing no change, once by community report.
+Putting it on an inner panel does nothing regardless of the number.
+
+**This is sufficient on its own.** With it in place a layout draws above the crosshair with no HUD
+flags set - verified by deploying the stylesheet change alone against an unchanged plugin. If you
+find yourself hiding the crosshair server-side to get a menu on top, the z-index is in the wrong
+place or too small.
 
 **String interning is capped at 1024 per entity**, separately for panel ids, class names and dialog
 variable names. Values themselves do not count. No log was observed on overflow, so assume silent

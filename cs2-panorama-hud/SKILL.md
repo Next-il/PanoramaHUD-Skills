@@ -1,7 +1,7 @@
 ---
 name: cs2-panorama-hud
 description: >
-  Author CS2 Panorama HUD layouts and drive them from a CounterStrikeSharp plugin via HudMenu.Shared.
+  Author CS2 Panorama HUD layouts and drive them from a CounterStrikeSharp plugin via PanoramaManager.
   Use for anything touching custom_hud_layout, .vxml/.vcss files, panorama/layout/custom_game,
   server-driven CS2 menus, weapon pickers, admin panels, HUD bars or toasts - and whenever writing
   Panorama CSS, because web CSS habits fail silently here.
@@ -97,9 +97,9 @@ placeholders, fonts are substituted. Judge spacing and hierarchy there, everythi
 ## Driving it from C#
 
 ```csharp
-HudMenus.Init(this);                                   // once, in Load
+Panorama.Init(this);                                   // once, in Load
 
-var menu = HudMenus.Spawn("panorama/layout/custom_game/mymenu.vxml_c",
+var menu = Panorama.Spawn("panorama/layout/custom_game/mymenu.vxml_c",
                           new LayoutContract { RevealClass = "show" });
 
 menu.Title = "Admin";
@@ -119,15 +119,16 @@ menu.Open(player);
   makes one authorisation check possible instead of one per row.
 - **Authorise inside the handler.** Never assume the menu could only have been opened by someone
   allowed to use it.
-- **Hide HUD elements per menu** with `LayoutContract.HideHud`, restored on close. Defaults to the
-  crosshair, which sits on a HUD layer above anything a stylesheet can reach:
-  `new LayoutContract { HideHud = HideHudFlags.Crosshair | HideHudFlags.Radar }`, or
-  `HideHudFlags.None` to leave the HUD alone. The flags live on the player's **pawn**, so a dead or
-  spectating viewer has nothing to carry them and a respawn drops them.
-- **Handle `MenuAction.Restored`.** A round restart destroys the layout entity; the library
+- **To draw above the game's HUD, use `z-index: 99999` on the layout's outermost panel** - not HUD
+  flags. That alone puts a menu above the crosshair.
+- **`LayoutContract.HideHud`** hides parts of the HUD when a menu genuinely wants them gone - a
+  cutscene without a radar, a full-screen overlay. Defaults to none. The flags live on the player's
+  **pawn**, so a dead or spectating viewer has nothing to carry them and a respawn drops them, and
+  they must be restored on close - which the library does.
+- **Handle `PanelAction.Restored`.** A round restart destroys the layout entity; the library
   rebuilds it and restores rows, title and handle-level variables, but anything written with
   `SetVariableFor` / `SetClassFor` is yours to redraw - it never saw what those meant.
-- **`OnEvent` fires `MenuAction.Close` for every close** - a click on the X, a round restart, a
+- **`OnEvent` fires `PanelAction.Close` for every close** - a click on the X, a round restart, a
   `Dispose`. Undo anything you set up on open there, not only where you handle the button.
 - **Native calls are not thread-safe.** Anything touching the menu after an `await` must come back
   through `Server.NextFrame`.
@@ -157,7 +158,7 @@ Every failure this library has had looks identical from outside: a menu that ren
 nothing. They are told apart by which native resolved.
 
 ```
-css_hudmenu_diag
+css_panorama_diag
 ```
 
 Prints the gamedata source, whether per-player text is available, whether the click channel
@@ -176,8 +177,8 @@ the addon-layout gate, and means the delivery route itself was refused.
 
 ### After a CS2 update
 
-Signatures are per-build. When they break, `css_hudmenu_diag` shows which, and the repair is a text
-edit to `gamedata/hudmenu.json` rather than a rebuild. To re-derive: test the known signatures
+Signatures are per-build. When they break, `css_panorama_diag` shows which, and the repair is a text
+edit to `gamedata/panoramamanager.json` rather than a rebuild. To re-derive: test the known signatures
 against the new binary, wildcard the immediate operands of whichever failed and re-match, then anchor
 on a string the function references. Offsets that exist in the schema should be read by name instead
 - those survive updates.
@@ -185,7 +186,7 @@ on a string the function references. Offsets that exist in the schema should be 
 ## Shipping
 
 Compile in Workshop Tools; the plugin asks for the compiled path (`mymenu.vxml_c` - note the `_c`).
-Signatures live in `gamedata/hudmenu.json` so a CS2 update is a text edit rather than a rebuild.
+Signatures live in `gamedata/panoramamanager.json` so a CS2 update is a text edit rather than a rebuild.
 
 Addon-supplied layouts are still refused by the retail client. Today a layout must reach clients
 through a `gameinfo.gi` search path, which is a development harness and not a shipping method.

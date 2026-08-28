@@ -86,3 +86,9 @@ A skill is instructions, not enforcement. It makes a model much likelier to writ
 it does not stop it writing `display: flex` anyway. That is exactly why `validate.py` exists and why  
 the skill tells the agent to run it before every compile.
 
+## Related
+
+| | |
+|---|---|
+| [PanoramaManager](https://github.com/Next-il/PanoramaManager) | The library these skills write layouts for. Drives any Panorama layout from a CounterStrikeSharp plugin |
+| [Toasts](https://github.com/Next-il/Toasts) | Shared notification system built on it |
