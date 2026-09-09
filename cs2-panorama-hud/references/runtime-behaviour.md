@@ -52,6 +52,17 @@ transition restarts. So it hits **properties whose resolved size depends on the 
 clipping has no impact on layout, and is fast and supported for transitions/animations."* Treat that
 sentence as the safety test for any property.
 
+`clip` takes `rect( top, right, bottom, left )` in px or % - so a bar ladder is
+`.bar.w10 { clip: rect( 0%, 50%, 100%, 0% ); }` - and `radial( 50% 50%, 0deg, 90deg )` for a swept
+sector, which `width` cannot express at all. It does not reduce the number of classes: the server
+toggles classes, so N steps is N classes either way. What it buys is that the bar stops snapping back
+when the label next to it is rewritten.
+
+**`references/kit/panorama/styles/custom_game/hudkit.vcss` contradicts this** - it teaches
+`transition-property: width` with a `.fill-0`..`.fill-100` ladder, and the kit is otherwise the best
+evidence in this skill of what passes the validator, so it gets copied. It has been copied. Take the
+structure from the kit and the mechanism from here.
+
 `@keyframes` cannot animate `width` at all (re-verified with ping-pong to rule out non-restart).
 
 ---
@@ -59,8 +70,17 @@ sentence as the safety test for any property.
 ## Traps
 
 **`background-blur` does not work.** Registered, with a doc string, and Valve's own stylesheets use
-it zero times. Use `world-blur` to blur behind a panel. *Registered is not the same as working - check
-whether stock vcss actually uses a property before trusting it.*
+it zero times. *Registered is not the same as working - check whether stock vcss actually uses a
+property before trusting it.*
+
+`world-blur` is the usual substitute, but they are **not the same target**, and the doc strings are
+explicit about it: `blur` blurs this panel and its children, `background-blur` blurs what is behind
+the panel at composition, `world-blur` blurs the world / backbuffer before anything is drawn. All
+three take `gaussian( hstd, vstd, passes )` or `gaussian( n )` as shorthand; good standard deviations
+are 0-10 and **more than one pass is bad for perf**. If 10 is not enough, `world-blur` alone also
+takes `mipmapgaussian( 6, 6, 4 )`, which downsamples to a quarter area before each pass - the cheap
+route to heavy blur. Reaching for `world-blur` gives the right picture only when the world was what
+you wanted blurred.
 
 **`z-index` only orders siblings within one parent.** To sit above the built-in HUD it has to go on
 the **outermost panel of the layout**, not on an inner one - and the value has to be large. The
@@ -103,7 +123,10 @@ its own size is not subtracted.
 ## Worth using
 
 **Stock stylesheets can be included.** `s2r://.../csgostyles.vcss_c` brings the Stratum font set,
-`fontSize-*`, and `csgo-hud__color-0..12`. No need to invent a type or colour system.
+`fontSize-*`, and `csgo-hud__color-0..12`. No need to invent a type or colour system. The class names
+those sheets actually define, recovered by frequency from Valve's own 294 layouts, are in
+`valve-layout-corpus.md` - note that **`hidden` and `Hidden` both exist**, so a reveal class named
+`hidden` collides.
 
 **CSS can play sounds** - `sound:` on a selector, `sound-out:` when it is removed. No usermessage or
 client script involved.
@@ -123,6 +146,8 @@ map reload. Land the plugin-side driver first, then iterate on CSS alone.
 
 - Why `off` -> wait -> `on` needed 0.3s when a tick is 15.6ms.
 - Whether `x` / `y` / `z` work as standalone properties with `%` and transitions.
+- `@define`'s syntax. It is a registered at-rule - Panorama's answer to `var()` - but neither dump of
+  the binary carries an example, and there is none in this repo or in the kit.
 - **Per-player state reaches spectators and GOTV.** If `m_bInputCaptureEnabled` propagates, a
   spectator's mouse gets taken. Design admin HUDs with that in mind.
 - **Slot reuse on reconnect keeps the previous occupant's per-player state.** A leftover input

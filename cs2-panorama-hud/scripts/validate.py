@@ -84,7 +84,9 @@ ALLOWED_ATTRS = {"id", "class", "hittest", "text", "src", "texturewidth", "textu
 # Properties whose values are a fixed vocabulary, taken from the reference's own descriptions. These
 # are the ones where a web-CSS reflex produces a value Panorama drops without a word.
 KEYWORDS = {
-    "background-size":  {"contains", "auto", "cover"},
+    # Valve documents pixels, percent, "contains" and "auto" - there is no "cover". Leaving it in
+    # here passed the exact silent fallback the skill warns about.
+    "background-size":  {"contains", "auto"},
     "background-repeat": {"repeat", "space", "round", "no-repeat", "repeat-x", "repeat-y"},
     "overflow":         {"squish", "clip", "scroll", "noclip"},
     "visibility":       {"visible", "collapse"},
@@ -100,7 +102,10 @@ KEYWORDS = {
 def main() -> int:
     failures = []
 
-    known = set(re.findall(r'(?m)^([a-z0-9-]+|-s2-mix-blend-mode)\n-{2,}$', REF.read_text()))
+    # -{1,} not -{2,}: the reference underlines each name to its own length, so the one-character
+    # properties x, y and z were underlined with a single dash and never matched. The validator saw
+    # 137 of 140 names and reported all three as unregistered.
+    known = set(re.findall(r'(?m)^([a-z0-9-]+|-s2-mix-blend-mode)\n-{1,}$', REF.read_text()))
 
     for path in sorted(LAYOUTS.glob("*.xml")):
         try:

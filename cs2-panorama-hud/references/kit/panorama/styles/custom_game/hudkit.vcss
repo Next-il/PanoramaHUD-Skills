@@ -221,6 +221,13 @@
 .kit-fill { height: 100%; border-radius: 4px; background-color: gradient( linear, 0% 0%, 100% 0%, from( #f0a531 ), to( #ffd27a ) ); transition-property: width; transition-duration: 0.15s; transition-timing-function: linear; }
 .kit-fill.r { background-color: gradient( linear, 0% 0%, 100% 0%, from( #e0432f ), to( #ff8a6a ) ); }
 .kit-fill.b { background-color: gradient( linear, 0% 0%, 100% 0%, from( #56a0dd ), to( #9fd0ff ) ); }
+/*  WARNING, added when this kit was bundled - this bar is the one thing in here that is wrong.
+    Writing any dialog variable in the same subtree re-lays-out the row and restarts a `width`
+    transition from full, so a bar next to a label that changes snaps back every update. Measured;
+    see references/runtime-behaviour.md. Keep the structure, replace `transition-property: width`
+    above and this ladder with `transition-property: clip` and a clip ladder:
+        .kit-fill.fill-50 { clip: rect( 0%, 50%, 100%, 0% ); }
+*/
 /* stepped widths — SetHasClass one of these since we push classes, not raw width */
 .fill-0   { width: 0%; }
 .fill-10  { width: 10%; }

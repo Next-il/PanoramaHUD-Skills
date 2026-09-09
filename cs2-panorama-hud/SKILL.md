@@ -17,9 +17,10 @@ cannot send a colour, a width, a coordinate or an image path. It can do exactly 
 1. **Write a string into a dialog variable** - fills a `text="{s:name}"` slot.
 2. **Toggle a CSS class on a panel by id.**
 
-Everything else is a consequence of those two. A progress bar is ten preset width classes. An accent
-colour is a palette of classes. A hidden row is a class. If you catch yourself planning to "send the
-colour from the plugin", stop - bake the options into the stylesheet and have the plugin name one.
+Everything else is a consequence of those two. A progress bar is a ladder of preset `clip` classes
+(not `width` - see below). An accent colour is a palette of classes. A hidden row is a class. If you catch
+yourself planning to "send the colour from the plugin", stop - bake the options into the stylesheet
+and have the plugin name one.
 
 **Layout changes are expensive, C# changes are free.** A layout ships to every client inside a VPK.
 Be generous with pool sizes and palettes up front; running out of tiles later is a re-release.
@@ -33,27 +34,59 @@ layout that looks wrong for no visible reason. This list is most of what goes wr
 |---|---|
 | `display: flex` / `grid` | No `display` property at all. Use `flow-children: down\|right` |
 | `width: 100%` on a child of an unsized parent | Renders as **nothing** - parent sizes to child, child to parent, circle resolves to zero |
-| `box-shadow: 0 4px 8px #000` | Colour comes **first**: `box-shadow: #000 0px 4px 8px 0px` |
+| `box-shadow: 0 4px 8px #000` | Colour comes **first**: `box-shadow: #000 0px 4px 8px 0px`. Full order is `[inset\|fill\|hollow] color hoff voff blur spread` |
 | `background-size: contain` | It is `contains`. Wrong spelling falls back to `auto` = original size = overflow |
-| `transition: color 0.2s ease` | Split form: `transition-property` / `-duration` / `-timing-function` |
+| `transition: color 0.2s ease` | Shorthand works, same argument order - only the property *names* differ: `transition: position 2.0s ease-in-out 0.0s`. Untried here; the split form is what this project ships |
 | `display: none` | `visibility: collapse` - removes it from layout, leaves no gap |
 | `rgb()` / `rgba()` / `hsl()` | `#rrggbb` / `#rrggbbaa` only |
-| `calc()` / `var()` / custom properties | None exist |
+| `calc()` / `var()` | Do not exist. But `@define` does - Panorama's named-value mechanism. Syntax unverified here; see `references/panorama-vocabulary.md` |
 | `@media` | Does not exist |
-| `::before` / `::after` / `:not()` | Do not exist |
+| `::before` / `::after` | Do not exist |
+| `:not()`, `:nth-child()`, `:nth-last-child()` | **These do exist**, plus `:first-child` / `:last-child`. Use them - a rule the stylesheet decides is a class the server never has to send |
 | `float`, `top/right/bottom/left`, `object-fit` | Do not exist. Use `x`/`y`/`z`, `align`, `ignore-parent-flow` |
-| Flex wrapping | **No wrapping.** Five-per-line means five panels per line, structurally |
-| `<Image src>` for a dynamic picture | `src` is static and the server cannot rewrite it. Use a `Panel` with `background-image` set by class |
+| Flex wrapping | **Panels never wrap** - five-per-line means five panels per line, structurally. *Text* does wrap, with `white-space: normal` |
+| `<Image src>` for a dynamic picture | `src` is static and the server cannot rewrite it - and `scaling`, the fit mode, is off the attribute whitelist. Use a `Panel` with `background-image` set by class |
 
-`references/panorama-css-reference.txt` is the complete registered vocabulary, read out of
-`libpanorama.so`. **Check it before using any property you have not used here before.**
+## Three properties worth knowing before you start
 
-`references/runtime-behaviour.md` covers what the vocabulary cannot tell you: which properties
-survive a text update, why a same-tick class off-then-on sends nothing, and which registered
-properties do not actually work. Read it before animating anything or building a bar.
+Each of these was re-invented the expensive way in this project because nobody knew the word for it.
 
-`references/kit/` is 19 working layouts from the community - the best available evidence of what
-passes the validator.
+**`text-overflow: shrink min( 10px ) ellipsis`** auto-fits the *font size* to the box. Reach for it
+before you hand-count characters against the longest expected string and derive a pixel budget - this
+project did that twice. It is also strictly better than letting the default `overflow: squish` fire,
+because a squish scales the whole row, icons and glyphs included; `shrink` touches one label's font.
+
+**`clip: rect( 0%, 50%, 100%, 0% )`** is how you build a bar. Not `width` - writing any dialog
+variable in the same subtree restarts a `width` transition from full (measured; `runtime-behaviour.md`).
+`clip: radial( 50% 50%, 0deg, 90deg )` does cooldown dials and sweeps, which `width` cannot express at
+all. Valve's own note is the tell: clipping *"has no impact on layout, and is fast and supported for
+transitions/animations."* It does **not** shrink the class ladder - the server still toggles N classes
+for N steps - it just stops the bar redrawing every time the text changes.
+
+**`ui-scale: 150%`** scales a panel and all its descendants **at the layout level**, so text gets a
+bigger font rather than a stretched bitmap. It works from a class on the root, which is exactly what
+C# can toggle, so a per-player HUD-scale option is three classes rather than a second stylesheet.
+
+All three are Valve's own doc strings, from `libpanorama.so`. Only `clip: rect()` has actually been
+run in a custom_hud_layout here - `shrink`, `radial()` and `ui-scale` are unverified until someone
+tries them, and nothing in the sandbox suggests they would not work.
+
+## References
+
+- **`panorama-css-reference.txt`** - all 140 registered properties with Valve's own prose.
+  **Check it before using any property you have not used here before.**
+- **`panorama-vocabulary.md`** - selectors, panel states, at-rules, XML attributes, each labelled
+  with whether a custom_hud_layout can actually reach it (of 13 panel states, two can). Also the
+  recipes: the three properties above, the three blurs, the composition-time colour set.
+- **`valve-layout-corpus.md`** - 294 decompiled Valve layouts by tag and attribute frequency: what
+  is *used* versus merely registered. Headline number: **8 of the 294 would load here.**
+- **`runtime-behaviour.md`** - what the vocabulary cannot tell you. Which properties survive a text
+  update, why a same-tick class off-then-on sends nothing, which registered properties do not work.
+  Read it before animating anything or building a bar.
+- **`kit/`** - 19 working layouts from the community, the best evidence of what passes the validator.
+  **One known bug:** `hudkit.vcss` builds bars from `transition-property: width` and a
+  `.fill-0`..`.fill-100` ladder, which is the pattern `runtime-behaviour.md` records as broken. Take
+  the structure, swap `width` for `clip`.
 
 ## The XML subset
 
@@ -63,6 +96,9 @@ passes the validator.
 - **Attributes:** `id`, `class`, `hittest`, `text`, `src`, `texturewidth`, `textureheight`
 - **No `<scripts>`.** No client-side JavaScript, ever. `hittestchildren` and `style` are rejected
   even though both are valid Panorama.
+- **Valve's own layouts are not a starting point.** 8 of 294 would load here; 189 declare scripts.
+  A `<Button>` copied from Valve is a dead control - half carry `onactivate`, which does not exist
+  here, and clicks arrive through PanoramaManager's channel keyed on the panel **id** instead.
 - **The root panel may not have an `id`** - the loader assigns it. Wrap: an anonymous full-screen
   Panel, with the real root one level in.
 - **Author the root hidden.** The entity shows its layout to *every* player; per-player state only
