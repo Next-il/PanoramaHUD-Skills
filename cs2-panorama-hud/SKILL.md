@@ -191,14 +191,15 @@ arrives from a client, so it is trimmed, stripped of control characters and trun
 ## Diagnosing
 
 Every failure this library has had looks identical from outside: a menu that renders but does
-nothing. They are told apart by which native resolved.
+nothing. They are told apart per slot, which is what the diagnostic prints.
 
 ```
 css_panorama_diag
 ```
 
-Prints the gamedata source, whether per-player text is available, whether the click channel
-installed, and the live menus. The same information goes to the log at startup, but it scrolls away.
+Prints the click channel and when it last delivered a click, then every live menu: the entity it is
+bound to, and for each viewer the draw age, the reveal result, whether input capture is held and
+which classes are tracked. The same information goes to the log at startup, but it scrolls away.
 
 Reading the client console when a layout will not load - the two messages mean opposite things and
 both end with the same useless summary line:
@@ -213,16 +214,16 @@ the addon-layout gate, and means the delivery route itself was refused.
 
 ### After a CS2 update
 
-Signatures are per-build. When they break, `css_panorama_diag` shows which, and the repair is a text
-edit to `gamedata/panoramamanager.json` rather than a rebuild. To re-derive: test the known signatures
-against the new binary, wildcard the immediate operands of whichever failed and re-match, then anchor
-on a string the function references. Offsets that exist in the schema should be read by name instead
-- those survive updates.
+There is nothing here to re-derive. The engine side is CounterStrikeSharp's own `CCSCustomHudLayout`
+API, which resolves everything through the schema by name, so a CS2 update is a CounterStrikeSharp
+update: wait for the CSS build that supports it, then update CSS. Earlier versions of this library
+signature-scanned the engine and shipped `gamedata/panoramamanager.json`; that whole layer is gone,
+and so is the file. If you find a copy on a server, it is dead weight - delete it.
 
 ## Shipping
 
 Compile in Workshop Tools; the plugin asks for the compiled path (`mymenu.vxml_c` - note the `_c`).
-Signatures live in `gamedata/panoramamanager.json` so a CS2 update is a text edit rather than a rebuild.
+The server needs CounterStrikeSharp 1.0.374 or newer, and no gamedata file.
 
 Addon-supplied layouts are still refused by the retail client. Today a layout must reach clients
 through a `gameinfo.gi` search path, which is a development harness and not a shipping method.
